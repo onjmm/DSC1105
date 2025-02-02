@@ -1,0 +1,44 @@
+---
+title: "FA1_EDA"
+author: "MORILLO, JADE MARCO S."
+date: "2025-02-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(qqplotr)
+
+data <- read.csv("/Users/Dindette/Downloads/cytof_one_experiment.csv")
+
+```
+
+```{r }
+selected_column <- "CD161"
+
+# Density Estimate
+ggplot(data, aes_string(x = selected_column)) + 
+  geom_density(fill = "red", alpha = 0.5) +
+  ggtitle("Density Estimate of CD161")
+
+# ECDF Plot
+ggplot(data, aes_string(x = selected_column)) + 
+  stat_ecdf(geom = "step", color = "blue") + 
+  ggtitle("Empirical Cumulative Distribution Function (ECDF) - CD161")
+```
+
+The density estimate plot for the CD161 column reveals that the data is right-skewed, with most values concentrated close to 0. The same can be said for the ECDF plot where it rose a lot at the beginning but the slope got less inclined after 0.
+
+```{r }
+col1 <- "KIR3DL1"
+col2 <- "KIR2DS4"
+
+# Q-Q Plot
+ggplot(data, aes(sample = get(col1))) +
+  stat_qq(aes(sample = get(col2)), color = "purple") +
+  stat_qq_line(aes(sample = get(col2))) +
+  ggtitle(paste("Q-Q Plot:", col1, "vs", col2))
+```
+
+The Q-Q plot comparing KIR3DL1 and KIR2DS4 shows that the two datasets do not follow the same distribution pattern as it deviates from the reference line.
