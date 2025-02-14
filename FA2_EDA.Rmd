@@ -1,0 +1,61 @@
+---
+title: "FA2_EDA"
+author: "MORILLO, JADE MARCO S."
+date: "2025-02-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dcldata)
+```
+
+```{r long}
+df <- read.csv("/Users/Dindette/Downloads/cytof_one_experiment.csv")
+
+df_long <- df %>%
+  pivot_longer(cols = everything(), names_to = "Protein", values_to = "Amount")
+
+head(df_long)
+
+nrow(df_long)
+```
+
+```{r median_mad}
+summary_stats <- df_long %>%
+  group_by(Protein) %>%
+  summarise(
+    Median = median(Amount, na.rm = TRUE),
+    MAD = mad(Amount, na.rm = TRUE)
+  )
+
+print(summary_stats)
+```
+
+```{r plot}
+ggplot(summary_stats, aes(x = MAD, y = Median)) +
+  geom_point() +
+  labs(title = "Spread-Location Plot", x = "Median Absolute Deviation (MAD)", y = "Median Protein Level") +
+  theme_minimal()
+```
+
+```{r gym}
+library(dcldata)
+data(example_gymnastics_2)
+
+head(example_gymnastics_2)
+```
+
+```{r gym_long}
+gymnastics_long <- example_gymnastics_2 %>%
+  pivot_longer(
+    cols = -country,
+    names_to = "event_year", 
+    values_to = "score"
+  ) %>%
+  separate(event_year, into = c("event", "year"), sep = "_")
+
+gymnastics_long$year <- as.numeric(gymnastics_long$year)
+
+head(gymnastics_long)
+```
