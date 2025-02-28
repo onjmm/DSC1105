@@ -1,0 +1,65 @@
+---
+title: "FA3_EDA"
+author: "MORILLO, JADE MARCO S."
+date: "2025-02-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+```
+
+## Item 1:
+
+```{r layer}
+p <- ggplot(diamonds, aes(x = carat)) 
+p <- p + layer(
+  geom = "bar",
+  stat = "bin",
+  position = "stack",
+  mapping = aes(y = after_stat(count))
+)
+p
+```
+
+#1. The distribution of carat weights in the diamonds dataset shows a right-skewed pattern, meaning that smaller carat values are more common, while larger diamonds are relatively rare. The binning structure effectively visualizes this skewed distribution. 
+
+## Item 2:
+
+```{r modify}
+p_point <- p + layer(
+  geom = "point",
+  stat = "bin",
+  position = "stack",
+  mapping = aes(y = after_stat(count))
+)
+p_point
+```
+
+#2. This visualization preserves the overall shape of the distribution but lacks the continuous feel of a traditional histogram. While points can make it easier to see density variations, they may not be as effective for showing overall trends compared to bars.
+
+## Item 3:
+
+```{r color}
+p_colored <- p + aes(fill = color)
+p_colored
+```
+
+#3. The resulting plot revealed that specific color categories are more common in different carat weight ranges. The stacked color representation highlights the proportional distribution of different color grades across carat values.
+
+## Item 4:
+
+```{r position}
+ggplot(diamonds, aes(x = carat, fill = color)) + 
+  geom_histogram(binwidth = 0.2, position = "dodge", alpha = 0.8) +
+  scale_fill_manual(values = c("D" = "#440154FF", "E" = "#3B528BFF", 
+                               "F" = "#21908CFF", "G" = "#5DC863FF", 
+                               "H" = "#FDE725FF", "I" = "#FDE725FF", 
+                               "J" = "#FDE725FF")) +
+  labs(title = "Dodged Histogram of Diamond Carat by Color", 
+       x = "Carat", y = "Count", fill = "Color") +
+  theme_minimal()
+```
+
+#4. This adjustment helps compare absolute counts of diamonds in different color categories at each carat weight range. However, since many carat values have relatively few diamonds, some bars appear very short, making comparison more difficult.
