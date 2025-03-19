@@ -1,0 +1,300 @@
+---
+title: "SA1_EDA"
+author: "MORILLO, JADE MARCO S."
+date: "2025-03-18"
+output: html_document
+---
+
+```{r setup, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(gridExtra)
+library(moments)
+library(MASS)
+library(caret)
+```
+
+## Unit 1: Univariate Data Analysis
+
+1. Load the dataset and summarize its structure.
+
+```{r load_data}
+df <- read_csv("C:/Users/Dindette/Downloads/EDA_Ecommerce_Assessment.csv")
+
+str(df)
+head(df)
+```
+
+The dataset contains 3,000 observations and 10 variables, capturing key aspects of customer purchasing behavior such including customer demographics and transaction details.
+
+
+2. Create histograms and boxplots to visualize the distribution of Purchase_Amount, Number_of_Items, and Satisfaction_Score.
+
+```{r visualization}
+p1 <- ggplot(df, aes(x = Purchase_Amount)) + 
+  geom_histogram(bins = 30, fill = "blue", alpha = 0.7, color = "black") + 
+  ggtitle("Histogram of Purchase Amount") + 
+  theme_minimal()
+
+p2 <- ggplot(df, aes(x = Number_of_Items)) + 
+  geom_histogram(bins = 30, fill = "green", alpha = 0.7, color = "black") + 
+  ggtitle("Histogram of Number of Items") + 
+  theme_minimal()
+
+p3 <- ggplot(df, aes(x = Satisfaction_Score)) + 
+  geom_bar(fill = "purple", alpha = 0.7, color = "black") + 
+  ggtitle("Histogram of Satisfaction Score") + 
+  theme_minimal()
+
+p4 <- ggplot(df, aes(y = Purchase_Amount)) + 
+  geom_boxplot(fill = "blue", alpha = 0.7) + 
+  ggtitle("Boxplot of Purchase Amount") + 
+  theme_minimal()
+
+p5 <- ggplot(df, aes(y = Number_of_Items)) + 
+  geom_boxplot(fill = "green", alpha = 0.7) + 
+  ggtitle("Boxplot of Number of Items") + 
+  theme_minimal()
+
+p6 <- ggplot(df, aes(y = Satisfaction_Score)) + 
+  geom_boxplot(fill = "purple", alpha = 0.7) + 
+  ggtitle("Boxplot of Satisfaction Score") + 
+  theme_minimal()
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 3)
+```
+
+- The histogram for purchase amount shows a relatively uniform distribution which means customers spend across a wide range of values without a clear peak. While, its boxplot confirms that there are no significant outliers, with the median somewhere above 200. The spread is also wide, suggesting high variability in purchase behavior.
+- The number of items' histogram appears discrete, with distinct peaks at integer values, showing that customers typically purchase whole numbers of items. The boxplot then indicates that there are also no outliers for the number of items as well as a moderate spread, with the median around five items per transaction.
+- While for the satisfaction score, the histogram suggests customer satisfaction, while it peaks at 4, is varied and no single rating overwhelmingly dominates. This is supported by the boxplot which confirms that satisfaction scores are evenly spread, indicating a balanced distribution of feedback.
+
+3. Compute measures of central tendency (mean, median, mode) and spread (variance, standard deviation, IQR) for Purchase_Amount
+
+```{r summary statistics}
+summary_stats <- df %>%
+  summarise(
+    Mean = mean(Purchase_Amount, na.rm = TRUE),
+    Median = median(Purchase_Amount, na.rm = TRUE),
+    Mode = paste(names(sort(table(Purchase_Amount), decreasing = TRUE)[1:2]), collapse = ", "),
+    Variance = var(Purchase_Amount, na.rm = TRUE),
+    Std_Deviation = sd(Purchase_Amount, na.rm = TRUE),
+    IQR = IQR(Purchase_Amount, na.rm = TRUE)
+  )
+
+mode_values <- df %>%
+  count(Purchase_Amount) %>%
+  filter(n == max(n)) %>%
+  pull(Purchase_Amount)
+
+summary_stats <- summary_stats %>%
+  mutate(Mode = paste(mode_values, collapse = ", "))
+
+summary_stats
+```
+
+The mean Purchase_Amount is 248, while the median is 245, indicating a roughly symmetric distribution. The mode values 29.33 and 86.54 appear most frequently in the dataset, but they do not visibly stand out in the histogram due to the binning effect, masking individual peaks. The high variance of 19,846 and standard deviation of 141 indicate high variability in purchase amounts, while the interquartile range of 239 indicates a dispersion between the middle 50% of purchase amounts, proving the presence of diverse spending patterns among customers. Given the nearly continuous nature of Purchase_Amount, the mean and median provide a more meaningful summary of central tendency than the mode.
+
+4. Compare the distribution of Browsing_Time and Purchase_Amount across different Gender groups using density plots.
+
+```{r density plots}
+ggplot(df, aes(x = Browsing_Time, fill = Gender)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Density Plot of Browsing Time by Gender", x = "Browsing Time (minutes)", y = "Density") +
+  theme_minimal()
+
+ggplot(df, aes(x = Purchase_Amount, fill = Gender)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Density Plot of Purchase Amount by Gender", x = "Purchase Amount (USD)", y = "Density") +
+  theme_minimal()
+```
+
+- The density plot for browsing time by gender reveals that both males and females have a similar distribution, but males show a slightly higher density at shorter browsing durations, while females tend to have a greater density in the mid-range browsing times. This suggests that males may make quicker purchasing decisions, whereas females could be engaging in more extended browsing sessions before making a purchase.
+- While the purchase amount by gender density plot indicates overlapping distribution, suggesting similar spending habits. However, females show a slightly higher density in the mid-to-higher purchase amount range, implying that they might be making larger purchases more frequently than males who are higher on the low- and mid-ranges. 
+
+5. Apply a logarithmic or square root transformation on Browsing_Time and evaluate changes in skewness.
+
+```{r }
+
+df <- df %>%
+  mutate(
+    Log_Browsing_Time = log(Browsing_Time + 1), 
+    Sqrt_Browsing_Time = sqrt(Browsing_Time)
+  )
+
+skewness_values <- tibble(
+  Original = skewness(df$Browsing_Time, na.rm = TRUE),
+  Log_Transformed = skewness(df$Log_Browsing_Time, na.rm = TRUE),
+  Sqrt_Transformed = skewness(df$Sqrt_Browsing_Time, na.rm = TRUE)
+)
+
+skewness_values
+```
+
+The original skewness of Browsing_Time is approximately 0.0386, indicating a nearly symmetrical distribution. However, after applying the logarithmic transformation, the skewness shifts to -1.22 while the square root transformation also introduces a left skew but to a lesser extent, with a skewness of -0.477. This suggests that while both transformations alter the distribution, the logarithmic transformation has a more drastic effect in shifting the skewness negatively, whereas the square root transformation produces a milder correction.
+
+6. Fit a simple linear regression model predicting Purchase_Amount based on Browsing_Time. Interpret the results.
+
+```{r simple linear regression model}
+model <- lm(Purchase_Amount ~ Browsing_Time, data = df)
+
+summary(model)
+```
+
+The linear regression model predicting Purchase_Amount based on Browsing_Time suggests no significant relationship between the two variables. The estimated coefficient for Browsing_Time is -0.07839, meaning that for every additional minute spent browsing, the purchase amount is expected to decrease by approximately $0.08. However, this effect is not statistically significant as the p-value is significantly high at 0.296, indicating that browsing time does not have a meaningful impact on purchase amount. Additionally, the R-squared value is extremely low at 0.0003642, meaning the model explains virtually none of the variability in Purchase_Amount. This suggests that other factors, rather than browsing time alone, are more influential in determining purchase amounts.
+
+7. Use ggplot2 (or equivalent) to create scatter plots and regression lines.
+
+```{r scatter plots and regression lines}
+ggplot(df, aes(x = Browsing_Time, y = Purchase_Amount)) +
+  geom_point(alpha = 0.5, color = "blue") + 
+  geom_smooth(method = "lm", color = "red", se = TRUE) +  
+  labs(title = "Scatter Plot of Browsing Time vs Purchase Amount",
+       x = "Browsing Time (minutes)",
+       y = "Purchase Amount (USD)") +
+  theme_minimal()
+```
+
+The scatter plot visualizes the relationship between Browsing Time and Purchase Amount, with individual data points in blue and a fitted regression line in red. The regression line appears nearly flat, suggesting little to no relationship between the two variables. This aligns with the regression results, where the slope coefficient for Browsing Time was negative but statistically insignificant. The widely dispersed points further support the weak correlation, suggesting that longer browsing times do not necessarily lead to higher purchases.
+
+## Unit 2: Bivariate Data Analysis
+
+8. Create scatter plots to explore the relationship between Purchase_Amount and Number_of_Items.
+
+```{r purchase_numitems}
+ggplot(df, aes(x = Number_of_Items, y = Purchase_Amount)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Scatter Plot of Number of Items vs Purchase Amount",
+       x = "Number of Items",
+       y = "Purchase Amount (USD)") +
+  theme_minimal()
+```
+
+The scatter plot proves that the variable Number of Items is a discrete, with data points aligned vertically at distinct values. The nearly flat regression line suggests little to no relationship between Number of Items and Purchase Amount, indicating that buying more items does not necessarily lead to a proportional increase in spending which could be due to variations in item prices. 
+
+9. Fit a polynomial regression model for Purchase_Amount and Browsing_Time and compare it with a simple linear model.
+
+```{r polynomial regression model}
+linear_model <- lm(Purchase_Amount ~ Browsing_Time, data = df)
+poly_model <- lm(Purchase_Amount ~ poly(Browsing_Time, 2), data = df)
+anova_result <- anova(linear_model, poly_model)
+
+ggplot(df, aes(x = Browsing_Time, y = Purchase_Amount)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red", se = FALSE) + 
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2), color = "green", se = FALSE) +
+  labs(title = "Polynomial vs. Linear Regression",
+       x = "Browsing Time (minutes)",
+       y = "Purchase Amount (USD)") +
+  theme_minimal()
+
+list(Linear_Model_Summary = summary(linear_model), 
+     Polynomial_Model_Summary = summary(poly_model), 
+     ANOVA_Comparison = anova_result)
+```
+
+The scatter plot reveals the weak relationship between browsing time and purchase amount. Both the red linear regression line and the green polynomial regression curve appear nearly flat, suggesting little to no trend in the data. The dispersion of points further indicates that the browsing duration does not meaningfully predict purchase amount.
+
+The regression summaries supports this observation, as both models yield very low R-squared values, indicating that browsing time explains almost none of the variance in purchase amount. The linear model’s p-value of 0.2961 and the polynomial model’s p-value of 0.5154 are both too large hence, it show no statistical significance, while the ANOVA test of p = 0.6287 is also too large which confirms that adding a polynomial term does not improve predictive power. These results suggest that other factors, rather than browsing time, influence purchase behavior.
+
+10. Apply LOESS (Locally Estimated Scatterplot Smoothing) to Purchase_Amount vs. Browsing_Time and visualize the results.
+
+```{r LOESS}
+ggplot(df, aes(x = Browsing_Time, y = Purchase_Amount)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method = "loess", color = "red", se = FALSE) +
+  labs(title = "LOESS Smoothing: Purchase Amount vs. Browsing Time",
+       x = "Browsing Time (minutes)",
+       y = "Purchase Amount (USD)") +
+  theme_minimal()
+```
+
+The LOESS smoothing curve appears relatively flat, indicating that there is no strong nonlinear trend between the two variables. This suggests that browsing time has little to no significant impact on purchase amount, further proving the findings from the linear and polynomial regression models.
+
+11. Compare robust regression methods (Huber or Tukey regression) with ordinary least squares (OLS).
+
+```{r OLS_Huber}
+huber_model <- rlm(Purchase_Amount ~ Browsing_Time, data = df)
+ols_model <- lm(Purchase_Amount ~ Browsing_Time, data = df)
+
+summary_ols <- summary(ols_model)
+summary_huber <- summary(huber_model)
+
+ggplot(df, aes(x = Browsing_Time, y = Purchase_Amount)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  geom_smooth(method = "rlm", color = "green", se = FALSE) +
+  labs(title = "OLS vs. Huber Regression", x = "Browsing Time (minutes)", y = "Purchase Amount (USD)")
+
+list(OLS_Summary = summary_ols, Huber_Summary = summary_huber)
+```
+
+The scatter plot shows the nearly flat trend line which suggests that there is little to no clear correlation between the two variables. The spread of points appears uniform across all browsing times. This visual representation supports the notion that browsing time alone may not be a strong determinant of purchasing behavior.
+
+The regression summary compares the Ordinary Least Squares regression with the Huber regression. Both models yield similar coefficients for browsing time of -0.07839 for OLS and -0.0803 for Huber, with neither being statistically significant as the p-value for OLS is 0.296. The R-squared value of OLS is extremely low at 0.0003642, also indicating that browsing time explains almost none of the variance in purchase amount. While Huber regression produces a slightly higher residual standard error with 176.9. compared to OLS' 140.9. The overall results reinforce the conclusion that browsing time is not a meaningful predictor of purchase amount in this dataset.
+
+## Unit 3: Trivariate/Hypervariate Data Analysis
+
+12. Explore interaction effects between Browsing_Time and Category on Purchase_Amount using interaction plots.
+
+```{r interaction effects}
+ggplot(df, aes(x=Browsing_Time, y=Purchase_Amount, color=Category)) +
+  geom_smooth(method="lm", se=FALSE) +
+  labs(title="Interaction Between Browsing Time and Category on Purchase Amount",
+       x="Browsing Time (minutes)", y="Purchase Amount (USD)")
+```
+
+The interaction plot reveals that the effect of Browsing Time on Purchase Amount varies across product categories. The Books category exhibits the steepest downward trend, indicating that higher browsing times are associated with significantly lower purchase amounts. Similarly, Home & Kitchen and Electronics categories also show a decline, but less dramatic as the Books. In contrast, Beauty and Clothing display upward trends, suggesting that longer browsing durations lead to higher spending in these categories. These findings suggest that product categories influence how browsing time translates into purchase behavior.
+
+13. Create coplots of Purchase_Amount against Browsing_Time for different levels of Category.
+
+```{r coplots}
+ggplot(df, aes(x = Browsing_Time, y = Purchase_Amount)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  facet_wrap(~ Category) +
+  labs(title = "Coplot: Purchase Amount vs. Browsing Time by Category",
+       x = "Browsing Time (minutes)",
+       y = "Purchase Amount (USD)") +
+  theme_minimal()
+```
+
+The regression lines in the coplot show a weak trend between browsing time and purchase amount. For Books, Home & Kitchen, and electronics, there is a slight negative trend, suggesting that longer browsing time is associated with lower purchase amounts. In contrast, Clothing and Beauty show a minor positive trend, indicating that increased browsing time slightly correlates with higher spending. Overall, browsing time does not seem to be a strong predictor of purchase amount across categories. This aligns with the interaction plot results, where Books showed the steepest decline, while Clothing and Beauty exhibited slight positive trends.
+
+14. Use level plots or contour plots to visualize relationships between Browsing_Time, Number_of_Items, and Purchase_Amount.
+
+```{r level plots}
+ggplot(df, aes(x = Browsing_Time, y = Number_of_Items, fill = Purchase_Amount)) +
+  geom_tile() +
+  scale_fill_viridis_c() +
+  labs(title = "Level Plot: Purchase Amount by Browsing Time and Number of Items",
+       x = "Browsing Time (minutes)", y = "Number of Items",
+       fill = "Purchase Amount") +
+  theme_minimal()
+```
+
+The distribution in the level plot appears scattered across different browsing times and item counts, with no strong clustering of high purchase amounts in specific areas. This suggests that Purchase Amount is not strongly influenced by either Browsing Time or the Number of Items alone, implying that other factors may play a more significant role in determining spending behavior.
+
+15. Perform multiple regression with Purchase_Amount as the dependent variable and Browsing_Time, Number_of_Items, and Satisfaction_Score as predictors. Perform model selection and assess variable importance.
+
+```{r multiple regression}
+model <- lm(Purchase_Amount ~ Browsing_Time + Number_of_Items + Satisfaction_Score, data = df)
+summary(model)
+
+
+model_selected <- stepAIC(model, direction = "both")
+
+summary(model_selected)
+
+var_importance <- varImp(model_selected, scale = FALSE)
+print(var_importance)
+```
+
+- The linear regression model shows poor predictive power, with an R-squared of 0.00079, indicating it explains only 0.08% of the variance. None of the independent variables are statistically significant, suggesting they do not meaningfully impact Purchase_Amount. The F-statistic of 0.7923 with p-value of 0.4978 further confirms that the overall model is not significant. Additionally, the residual standard error of 140.9 and a wide range of residuals suggest high variance, indicating that the model is not capturing key factors influencing purchases. 
+
+- The stepwise AIC selection process indicates that none of the independent variables contribute significantly to predicting Purchase_Amount. The model started with all three variables, but the AIC gradually decreased as variables were removed. This suggests that none of the variables improve model fit, and the best prediction for Purchase_Amount is simply its mean. The fact that Browsing_Time was retained the longest before removal indicates it had the highest, though still insignificant, effect. The minimal change in AIC values across steps further reinforces that the independent variables provide little predictive value. This aligns with the previous analysis, where low R-squared and high p-values suggested poor explanatory power. 
+
+- The final selected model, lm(Purchase_Amount ~ 1), is a null model. The intercept of 247.963 with p-value less than 2e-16 represents the mean Purchase_Amount across all observations. The absence of predictors confirms that none of the original independent variables had significant power in predicting Purchase_Amount. The residual standard error remains high (140.9), indicating a large spread in the data that remains unexplained. This reinforces the earlier findings that the variables tested are not useful predictors.
+
+- The output of the varImp function on the final model shows no variable importance values. This result is expected because the final model only contains the intercept (lm(Purchase_Amount ~ 1)) and no predictor variables. Since variable importance measures the contribution of independent variables in predicting the dependent variable, having no predictors means there is nothing to evaluate. This further confirms that none of the original variables had meaningful predictive power for Purchase_Amount.
